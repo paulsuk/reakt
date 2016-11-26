@@ -2,6 +2,7 @@ from SimpleCV import Camera
 from googleapiclient import discovery
 from oauth2client.client import GoogleCredentials
 import base64
+import time
 
 
 def get_vision_service():
@@ -40,16 +41,24 @@ def audience_response(faces):
                     'sorrow': 0,
                     'anger': 0,
                     'surprise': 0,
+                    'neutral': 0,
                     'total': 0.0}
     for face in faces:
+        emotion = False
         if face.joyLikelihood == LIKELY or face.joyLikelihood == VERY_LIKELY:
             num_emotions['joy'] += 1
+            emotion = True
         if face.sorrowLikelihood == LIKELY or face.sorrowLikelihood == VERY_LIKELY:
             num_emotions['sorrow'] += 1
+            emotion = True
         if face.angerLikelihood == LIKELY or face.angerLikelihood == VERY_LIKELY:
             num_emotions['anger'] += 1
+            emotion = True
         if face.surpriseLikelihood == LIKELY or face.surpriseLikelihood == VERY_LIKELY:
             num_emotions['surprise'] += 1
+            emotion = True
+        if !emotion:
+            num_emotions['neutral'] += 1
         num_emotions['total'] += 1
 
     per_emotions = {}
@@ -58,17 +67,29 @@ def audience_response(faces):
     per_emotions['total'] = num_emotions['total']
     return per_emotions
 
+class audience_data:
+    def __init__(self, audience_img, time, results):
+        self.audience_img = audience_img
+        self.time = time
+        self.results = results
+
 if __name__ == "__main__":
+    initial_time = time.clock()
+    storage = []
     # Initialize the camera
     cam = Camera()
     # Loop to continuously get images
     while True:
+        time.sleep(1)
         # Get Image from camera
         img = cam.getImage()
+        time = time.clock()
         # Detect faces
         faces = detect_face(img)
         #Calculate results
         results = audience_response(faces)
+        data = audience_data(img, time-initial_time, results)
+        storage.append(data)
         print_results = ""
         for emotion, value in results.iteritems():
             print_results += emotion + ': ' + str(value) + '%\n'
