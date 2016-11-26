@@ -12,6 +12,7 @@ GOOGLE_APPLICATION_CREDENTIALS = "GOOGLE_APPLICATION_CREDENTIALS.json"
 def set_up_credentials():
     dir_path = os.path.dirname(os.path.realpath(__file__))
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = dir_path + '\\' + GOOGLE_APPLICATION_CREDENTIALS
+    py.sign_in("ConnorLawless", "izqU2noHEyqoJ4mslcKy")
 
 def get_vision_service():
     credentials = GoogleCredentials.get_application_default()    
@@ -78,39 +79,157 @@ def audience_response(faces):
     per_emotions['total'] = num_emotions['total']
     return per_emotions
 
-class audience_data:
-    def __init__(self, audience_img, time, results):
-        self.audience_img = audience_img
-        self.time = time
-        self.results = results
+def getVideoClipResults(fileName, framerate):
+    clip = VideoFileClip(fileName)
+    clip.write_images_sequence('frame%03d.jpg', framerate)
+    samples = make_img_list_jpg()
+    final_results = []
+    for i in range(len(samples)):
+        image = open(samples[i], 'rb')
+        data = getResultsFromSample(image, i/framerate)
+        final_results.append(data)
+    return final_results
+
+def getResultsFromSample(sampleImage, timeStamp):
+    faces = detect_face(sampleImage)
+    results = audience_response(faces)
+    print(results)
+    data = audience_data(timeStamp, results)
+    return data
+
+def make_img_list_jpg():
+    #Make list of image filenames
+    image_list = []
+    for filename in glob.glob('*.jpg'):
+        image_list.append(filename)
+    return image_list
+
+def output_linegraph( audience_data = [] ):
+    x = []
+    joy = []
+    anger = []
+    surprise = []
+    sorrow = []
+    neutral = []
+    for datum in audience_data:
+        x.append(datum.time)
+        joy.append(datum.results["joy"])
+        anger.append(datum.results["anger"])
+        surprise.append(datum.results["surprise"])
+        sorrow.append(datum.results["sorrow"])
+        neutral.append(datum.results["neutral"])
+    traceJoy = go.Scatter(
+        x=x,
+        y=joy,
+        mode='lines+markers',
+        line=dict(
+            color="rgb(244, 223, 66)",
+            width=4),
+        name='Joyful'
+    )
+    traceAnger = go.Scatter(
+        x = x,
+        y = anger,
+        mode='lines+markers',
+        line=dict(
+            color="rgb(244, 66, 66)",
+            width=4),
+        name='Angry'
+    )
+    traceSurprise = go.Scatter(
+        x=x,
+        y=surprise,
+        mode='lines+markers',
+        line=dict(
+            color="rgb(167, 48, 232)",
+            width=4
+        ),
+        name='Surprised'
+    )
+    traceSorrow = go.Scatter(
+        x=x,
+        y=sorrow,
+        mode='lines+markers',
+        line=dict(
+            color="rgb(66, 128, 244)",
+            width=4
+        ),
+        name='Sad'
+    )
+    traceNeutral = go.Scatter(
+        x=x,
+        y=neutral,
+        mode='lines+markers',
+        line = dict(
+            color="rgb(168, 164, 170)",
+            width=4),
+        name='Neutral'
+    )
+    data = [traceJoy, traceAnger, traceSurprise, traceSorrow, traceNeutral]
+    layout = go.Layout(width=2592, height=640)
+    fig = go.Figure(data=data,layout=layout)
+    py.image.save_as(fig, filename=('emotionTimeSeries.jpeg'))
+
+
+def output_piegraph(audience_data):
+    res = audience_data.results
+
+    labels = res.keys()
+    values = res.values()
+
+    trace = go.Pie(labels=labels, values=values,
+                   marker=dict(
+                       colors=["rgb(244, 66, 66)", "rgb(244, 223, 66)", "rgb(66, 128, 244)", "rgb(168, 164, 170)",
+                               "rgb(167, 48, 232)"]),
+                   textinfo="none", sort=False, showlegend = False)
+    layout = go.Layout(width=501, height=501)
+    fig = {'data': [trace], 'layout': layout}
+    py.image.save_as(fig, filename=(str(audience_data.time)+'.png'))
+
+def make_img_list():
+    #Make list of image filenames
+    image_list = []
+    for filename in glob.glob('*.png'):
+        image_list.append(filename)
+    return image_list
+
+def make_int_list():
+    #Filename contains time stamp of each frame in half seconds (2 frames / sec)
+    len_list = []
+    for filename in glob.glob('*.png'):
+        length = os.path.basename(filename).split('.')[0]
+        len_list.append(int(length))
+    return len_list
+
+def make_gif(im, length, FPS):
+    #Make video with the appropriate lengths of each picture 
+    full = []
+    for i in range(len(length)):
+        for j in range(length[i]):
+            full.append(im[i])
+    ImageSequenceClip(full, fps=FPS).write_videofile('images.mp4', fps=FPS)
+
+def final_vid():
+    pres = VideoFileClip("video.mp4")
+    pi = VideoFileClip("images.mp4")
+    graph = ImageClip("emotionTimeSeries.jpeg", duration=pres.duration)
+    pi = pi.resize((225,225))
+    pres = pres.resize((1280,1080))
+    CompositeVideoClip([pres,graph.set_pos(("center", "bottom")),pi.set_pos((1000,400))], size=(1280,720)).write_videofile('d1.mp4',fps=60,preset='ultrafast')
+
 
 if __name__ == "__main__":
     set_up_credentials()
-    '''
-    image_name = "crowdofpeople.jpg"
-    image = open(image_name, 'rb')
-    '''
-    storage = []
-    # Initialize the camera
-    cam = Camera()
-    initial_time = time.clock()
-    # Loop to continuously get images
-    while True:
-        time.sleep(1)
-        # Get Image from camera
-        img = cam.getImage()
-        time = time.clock()
-        # Detect faces
-        faces = detect_face(img)
-        #Calculate results
-        results = audience_response(faces)
-        data = audience_data(img, time-initial_time, results)
-        storage.append(data)
-        print_results = ""
-        for emotion, value in results.iteritems():
-            print_results += emotion + ': ' + str(value) + '%\n'
-        # Draw info text on image
-        img.drawText(print_results)
-        # Show the image
-        img.show()
-    
+
+    final = getVideoClipResults(fileName, framerate)
+    print('Paul won')
+
+    for timestep in final:
+        output_piegraph(timestep)
+        print('yo')
+    output_linegraph(final)
+    print('Connor won')
+
+    make_gif(make_img_list(), make_int_list(), framerate)
+    final_vid()
+    print('Grace won')
