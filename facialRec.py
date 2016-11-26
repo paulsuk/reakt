@@ -6,6 +6,8 @@ from oauth2client.client import GoogleCredentials
 from PIL import Image
 from moviepy.editor import *
 import glob
+import plotly.plotly as py
+import plotly.graph_objs as go
 
 
 GOOGLE_APPLICATION_CREDENTIALS = "GOOGLE_APPLICATION_CREDENTIALS.json"
@@ -20,6 +22,7 @@ class audience_data:
 def set_up_credentials():
     dir_path = os.path.dirname(os.path.realpath(__file__))
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = dir_path + '\\' + GOOGLE_APPLICATION_CREDENTIALS
+    py.sign_in("ConnorLawless", "izqU2noHEyqoJ4mslcKy")
 
 def get_vision_service():
     credentials = GoogleCredentials.get_application_default()
@@ -106,6 +109,7 @@ def getVideoClipResults(fileName, framerate):
 def getResultsFromSample(sampleImage, timeStamp):
     faces = detect_face(sampleImage)
     results = audience_response(faces)
+    print(results)
     data = audience_data(timeStamp, results)
     return data
 
@@ -116,8 +120,99 @@ def make_img_list():
         image_list.append(filename)
     return image_list
 
+def output_linegraph( audience_data = [] ):
+    py.sign_in("ConnorLawless", "izqU2noHEyqoJ4mslcKy")
+    x = []
+    joy = []
+    anger = []
+    surprise = []
+    sorrow = []
+    neutral = []
+    for datum in audience_data:
+        x.append(datum.time)
+        joy.append(datum.results["joy"])
+        anger.append(datum.results["anger"])
+        surprise.append(datum.results["surprise"])
+        sorrow.append(datum.results["sorrow"])
+        neutral.append(datum.results["neutral"])
+    traceJoy = go.Scatter(
+        x=x,
+        y=joy,
+        mode='lines+markers',
+        line=dict(
+            color="rgb(244, 223, 66)",
+            width=4),
+        name='Joyful'
+    )
+    traceAnger = go.Scatter(
+        x = x,
+        y = anger,
+        mode='lines+markers',
+        line=dict(
+            color="rgb(244, 66, 66)",
+            width=4),
+        name='Angry'
+    )
+    traceSurprise = go.Scatter(
+        x=x,
+        y=surprise,
+        mode='lines+markers',
+        line=dict(
+            color="rgb(167, 48, 232)",
+            width=4
+        ),
+        name='Surprised'
+    )
+    traceSorrow = go.Scatter(
+        x=x,
+        y=sorrow,
+        mode='lines+markers',
+        line=dict(
+            color="rgb(66, 128, 244)",
+            width=4
+        ),
+        name='Sad'
+    )
+    traceNeutral = go.Scatter(
+        x=x,
+        y=neutral,
+        mode='lines+markers',
+        line = dict(
+            color="rgb(168, 164, 170)",
+            width=4),
+        name='Neutral'
+    )
+    data = [traceJoy, traceAnger, traceSurprise, traceSorrow, traceNeutral]
+    layout = go.Layout(width=2592, height=640)
+    fig = go.Figure(data=data,layout=layout)
+    py.image.save_as(fig, filename=('emotionTimeSeries.png'))
+
+
+def output_piegraph(audience_data):
+    res = audience_data.results
+
+    labels = res.keys()
+    values = res.values()
+
+    trace = go.Pie(labels=labels, values=values,
+                   marker=dict(
+                       colors=["rgb(244, 66, 66)", "rgb(244, 223, 66)", "rgb(66, 128, 244)", "rgb(168, 164, 170)",
+                               "rgb(167, 48, 232)"]),
+                   textinfo="none", sort=False, showlegend = False)
+    layout = go.Layout(width=501, height=501)
+    fig = {'data': [trace], 'layout': layout}
+    print(trace)
+    print(str(audience_data.time))
+    py.image.save_as(fig, filename=(str(audience_data.time)+'.png'))
+
+
 if __name__ == "__main__":
     fileName = 'video.mp4'
-    framerate = 2
+    framerate = 1
     set_up_credentials()
     final = getVideoClipResults(fileName, framerate)
+    for timestep in final:
+        print(timestep.time)
+        print(timestep.results)
+        output_piegraph(timestep)
+    output_linegraph(final)
