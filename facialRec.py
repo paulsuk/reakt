@@ -41,16 +41,24 @@ def audience_response(faces):
                     'sorrow': 0,
                     'anger': 0,
                     'surprise': 0,
+                    'neutral': 0,
                     'total': 0.0}
     for face in faces:
+        emotion = False
         if face.joyLikelihood == LIKELY or face.joyLikelihood == VERY_LIKELY:
             num_emotions['joy'] += 1
+            emotion = True
         if face.sorrowLikelihood == LIKELY or face.sorrowLikelihood == VERY_LIKELY:
             num_emotions['sorrow'] += 1
+            emotion = True
         if face.angerLikelihood == LIKELY or face.angerLikelihood == VERY_LIKELY:
             num_emotions['anger'] += 1
+            emotion = True
         if face.surpriseLikelihood == LIKELY or face.surpriseLikelihood == VERY_LIKELY:
             num_emotions['surprise'] += 1
+            emotion = True
+        if !emotion:
+            num_emotions['neutral'] += 1
         num_emotions['total'] += 1
 
     per_emotions = {}
