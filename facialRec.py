@@ -1,4 +1,5 @@
-from SimpleCV import Camera
+import pygame
+import pygame.camera
 import base64
 import time
 import os
@@ -68,7 +69,7 @@ def audience_response(faces):
         if face.surpriseLikelihood == LIKELY or face.surpriseLikelihood == VERY_LIKELY:
             num_emotions['surprise'] += 1
             emotion = True
-        if !emotion:
+        if emotion == False:
             num_emotions['neutral'] += 1
         num_emotions['total'] += 1
 
@@ -91,7 +92,10 @@ if __name__ == "__main__":
     '''
     storage = []
     # Initialize the camera
-    cam = Camera()
+    pygame.camera.init()
+    pygame.camera.list_camera() #Camera detected or not
+    cam = pygame.camera.Camera("/dev/video0",(640,480))
+    cam.start()
     initial_time = time.clock()
     # Loop to continuously get images
     while True:
@@ -112,3 +116,4 @@ if __name__ == "__main__":
         img.drawText(print_results)
         # Show the image
         img.show()
+        print results
