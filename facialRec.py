@@ -1,4 +1,4 @@
-#from SimpleCV import Camera
+from SimpleCV import Camera
 import base64
 import time
 import os
@@ -14,7 +14,7 @@ def set_up_credentials():
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = dir_path + '\\' + GOOGLE_APPLICATION_CREDENTIALS
 
 def get_vision_service():
-    credentials = GoogleCredentials.get_application_default()    
+    credentials = GoogleCredentials.get_application_default()
     return discovery.build('vision', 'v1', credentials=credentials)
 
 def detect_face(image, max_results=10):
@@ -112,4 +112,3 @@ if __name__ == "__main__":
         img.drawText(print_results)
         # Show the image
         img.show()
-    
