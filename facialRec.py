@@ -68,8 +68,7 @@ def audience_response(faces):
     return per_emotions
 
 class audience_data:
-    def __init__(self, audience_img, time, results):
-        self.audience_img = audience_img
+    def __init__(self, time, results):
         self.time = time
         self.results = results
 
@@ -88,7 +87,7 @@ if __name__ == "__main__":
         faces = detect_face(img)
         #Calculate results
         results = audience_response(faces)
-        data = audience_data(img, time-initial_time, results)
+        data = audience_data(time-initial_time, results)
         storage.append(data)
         print_results = ""
         for emotion, value in results.iteritems():
