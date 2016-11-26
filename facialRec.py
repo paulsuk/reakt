@@ -1,12 +1,20 @@
-from SimpleCV import Camera
-from googleapiclient import discovery
-from oauth2client.client import GoogleCredentials
+#from SimpleCV import Camera
 import base64
 import time
+import os
+from googleapiclient import discovery
+from oauth2client.client import GoogleCredentials
+from PIL import Image
 
+
+GOOGLE_APPLICATION_CREDENTIALS = "GOOGLE_APPLICATION_CREDENTIALS.json"
+
+def set_up_credentials():
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = dir_path + '\\' + GOOGLE_APPLICATION_CREDENTIALS
 
 def get_vision_service():
-    credentials = GoogleCredentials.get_application_default()
+    credentials = GoogleCredentials.get_application_default()    
     return discovery.build('vision', 'v1', credentials=credentials)
 
 def detect_face(image, max_results=10):
@@ -18,9 +26,11 @@ def detect_face(image, max_results=10):
     Returns:
         An array of dicts with information about the faces in the picture.
     """
+
+    image_content = image.read()
     batch_request = [{
         'image': {
-            'content': base64.b64encode(image).decode('utf-8')
+            'content': base64.b64encode(image_content).decode('utf-8')
             },
         'features': [{
             'type': 'FACE_DETECTION',
@@ -32,6 +42,7 @@ def detect_face(image, max_results=10):
     request = service.images().annotate(body={
         'requests': batch_request,
         })
+
     response = request.execute()
 
     return response['responses'][0]['faceAnnotations']
@@ -73,10 +84,15 @@ class audience_data:
         self.results = results
 
 if __name__ == "__main__":
-    initial_time = time.clock()
+    set_up_credentials()
+    '''
+    image_name = "crowdofpeople.jpg"
+    image = open(image_name, 'rb')
+    '''
     storage = []
     # Initialize the camera
     cam = Camera()
+    initial_time = time.clock()
     # Loop to continuously get images
     while True:
         time.sleep(1)
@@ -96,3 +112,4 @@ if __name__ == "__main__":
         img.drawText(print_results)
         # Show the image
         img.show()
+    

@@ -1,0 +1,25 @@
+General things:
+
+Master Branch - our most recent thing that works
+
+Develop Branch - the common branch that we will be pushing our code into (once we are happy with develop, we will merge to master)
+
+When you wanna start working on something:
+- git pull origin develop (makes sure you are up to date with develop)
+- git checkout -b "branch name" (just make it your name)
+
+
+When you have made some changes
+- git pull origin develop
+
+if it works:
+- git add *
+- git commit -m "commit message"
+- git push origin branchname (so probably your name)
+
+If you get some error that there are some merge conflicts, and that it will abort:
+- git rm * (un commits/adds your things)
+- git stash (Saves your changes)
+- git pull origin develop (gets the updated code)
+- git stash pop (gets your saved new work)
+- deal with merge conflicts (ask paul/zaid or if you know how to do it)
