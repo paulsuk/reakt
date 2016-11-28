@@ -14,6 +14,7 @@ def set_up_credentials():
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = dir_path + '\\' + GOOGLE_APPLICATION_CREDENTIALS
     py.sign_in("ConnorLawless", "izqU2noHEyqoJ4mslcKy")
 
+
 def get_vision_service():
     credentials = GoogleCredentials.get_application_default()    
     return discovery.build('vision', 'v1', credentials=credentials)
@@ -45,6 +46,12 @@ def detect_face(image, max_results=10):
         })
 
     response = request.execute()
+    if not response['responses']:
+        return[]
+    elif not response['responses'][0]:
+        return []
+    elif not response['responses'][0]['faceAnnotations']:
+        return []
 
     return response['responses'][0]['faceAnnotations']
 
@@ -72,21 +79,52 @@ def audience_response(faces):
         if !emotion:
             num_emotions['neutral'] += 1
         num_emotions['total'] += 1
+                    'neutral': 0}
+    total = 0
+    
+    if not faces:
+        return num_emotions
+    
+    for face in faces:
+        emotion = False
+        if face['joyLikelihood'] == "LIKELY" or face['joyLikelihood'] == "VERY_LIKELY":
+            num_emotions['joy'] += 1
+            emotion = True
+        if face['sorrowLikelihood'] == "LIKELY" or face['sorrowLikelihood'] == "VERY_LIKELY":
+            num_emotions['sorrow'] += 1
+            emotion = True
+        if face['angerLikelihood'] == "LIKELY" or face['angerLikelihood'] == "VERY_LIKELY":
+            num_emotions['anger'] += 1
+            emotion = True
+        if face['surpriseLikelihood'] == "LIKELY" or face['surpriseLikelihood'] == "VERY_LIKELY":
+            num_emotions['surprise'] += 1
+            emotion = True
+        if not emotion:
+            num_emotions['neutral'] += 1
+        total += 1
 
     per_emotions = {}
     for emotion, value in num_emotions.iteritems():
-        per_emotions[emotion] = value / num_emotions['total']
-    per_emotions['total'] = num_emotions['total']
+        per_emotions[emotion] = value
+
     return per_emotions
 
 def getVideoClipResults(fileName, framerate):
     clip = VideoFileClip(fileName)
     clip.write_images_sequence('frame%03d.jpg', framerate)
+    pres = VideoFileClip("video.mp4")
+    i = 0
+    clip= []
+    while i/framerate < math.ceil(pres.duration):
+        filename_temp = 'frames\\frame%d.jpg' % i
+        pres.save_frame(filename_temp, i/framerate)
+        i += 1
     samples = make_img_list_jpg()
     final_results = []
     for i in range(len(samples)):
         image = open(samples[i], 'rb')
         data = getResultsFromSample(image, i/framerate)
+        data = getResultsFromSample(image, float(i/framerate))
         final_results.append(data)
     return final_results
 
@@ -101,6 +139,7 @@ def make_img_list_jpg():
     #Make list of image filenames
     image_list = []
     for filename in glob.glob('*.jpg'):
+    for filename in glob.glob('frames\*.jpg'):
         image_list.append(filename)
     return image_list
 
@@ -172,6 +211,10 @@ def output_linegraph( audience_data = [] ):
 
 
 def output_piegraph(audience_data):
+    py.image.save_as(fig, filename=('emotionTimeSeries.png'))
+
+
+def output_piegraph(audience_data, i):
     res = audience_data.results
 
     labels = res.keys()
@@ -185,6 +228,7 @@ def output_piegraph(audience_data):
     layout = go.Layout(width=501, height=501)
     fig = {'data': [trace], 'layout': layout}
     py.image.save_as(fig, filename=(str(audience_data.time)+'.png'))
+    py.image.save_as(fig, filename=('pi\\' + str(i)+'.png'))
 
 def make_img_list():
     #Make list of image filenames
@@ -199,6 +243,16 @@ def make_int_list():
     for filename in glob.glob('*.png'):
         length = os.path.basename(filename).split('.')[0]
         len_list.append(int(length))
+    for filename in glob.glob('pi/*.png'):
+        image_list.append(filename)
+    return image_list
+
+def make_int_list(framerate):
+    #Filename contains time stamp of each frame in half seconds (2 frames / sec)
+    len_list = []
+    for filename in glob.glob('pi/*.png'):
+        len_list.append(0.5)
+    print(len_list)
     return len_list
 
 def make_gif(im, length, FPS):
@@ -207,6 +261,9 @@ def make_gif(im, length, FPS):
     for i in range(len(length)):
         for j in range(length[i]):
             full.append(im[i])
+        for j in range(int(length[i]*FPS)):
+            full.append(im[i])
+    print(len(full))
     ImageSequenceClip(full, fps=FPS).write_videofile('images.mp4', fps=FPS)
 
 def final_vid():
@@ -216,6 +273,11 @@ def final_vid():
     pi = pi.resize((225,225))
     pres = pres.resize((1280,1080))
     CompositeVideoClip([pres,graph.set_pos(("center", "bottom")),pi.set_pos((1000,400))], size=(1280,720)).write_videofile('d1.mp4',fps=60,preset='ultrafast')
+    graph = ImageClip("emotionTimeSeries.png", duration=pres.duration)
+    pi = pi.resize((225,225))
+    graph = graph.resize((1280,250))
+    pres = pres.resize((1280,1080))
+    CompositeVideoClip([pres,graph.set_pos(("center", "bottom")),pi.set_pos((1000,600))], size=(1280,1080)).write_videofile('d1.mp4',fps=60,preset='ultrafast')
 
 
 if __name__ == "__main__":
@@ -231,5 +293,18 @@ if __name__ == "__main__":
     print('Connor won')
 
     make_gif(make_img_list(), make_int_list(), framerate)
+    final_vid()
+    print('Grace won')
+    framerate = 2
+    final = getVideoClipResults("video.mp4", framerate)
+    print('Paul won')
+
+    for i in range(len(final)):
+        output_piegraph(final[i], i)
+        print('done')
+    output_linegraph(final)
+    print('Connor won')
+
+    make_gif(make_img_list(), make_int_list(framerate), framerate) 
     final_vid()
     print('Grace won')
