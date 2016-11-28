@@ -14,3 +14,4 @@ Video to be analyzed is required to be in the same folder as FacialReq.py and ti
 
 Made by:
 Paul Suk, Grace Kumagai, Connor Lawless, Zaid Kassar, Quinten Coetsee
+>>>>>>> 9a7e59adb28a7b24732c6749d49794369f1cef12
